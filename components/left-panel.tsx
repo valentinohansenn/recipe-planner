@@ -21,14 +21,15 @@ import {
 	type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input"
 import { ChatMessageCard } from "./chat-message-card"
-import { ServingSizeControl } from "./serving-size-control"
 import { ThoughtProcessModule } from "./thought-process"
+import { useRecipeContext } from "@/contexts/recipe-context"
 import type { ThoughtStep } from "@/lib/types"
 
 export function LeftPanel() {
 	const messages = useChatMessages()
 	const sendMessage = useChatSendMessage()
 	const status = useChatStatus()
+	const { recipeVersions } = useRecipeContext()
 
 	const [thoughtSteps, setThoughtSteps] = useState<ThoughtStep[]>([])
 
@@ -118,13 +119,14 @@ export function LeftPanel() {
 						const content = message.parts
 							.filter((part) => part.type === "text")
 							.map((part) => part.text)
-							.join("");
+							.join("")
 
 						return (
-							<div key={message.id} className="space-y-4">
+							<div key={`${message.id}-${recipeVersions.length}`} className="space-y-4">
 								<ChatMessageCard
 									role={message.role}
 									content={content}
+									messageId={message.id}
 									isStreaming={
 										index === messages.length - 1 &&
 										message.role === "assistant" &&
@@ -139,7 +141,7 @@ export function LeftPanel() {
 										<ThoughtProcessModule steps={thoughtSteps} />
 									)}
 							</div>
-						);
+						)
 					})}
 				</ConversationContent>
 				<ConversationScrollButton />
@@ -147,11 +149,6 @@ export function LeftPanel() {
 
 			{/* Fixed Bottom Input with Floating Serving Control */}
 			<div className="border-t bg-background">
-				{/* Serving Size Control - Floating above input */}
-				<div className="px-4 pt-4">
-					<ServingSizeControl />
-				</div>
-
 				{/* Input Area */}
 				<div className="p-4">
 					<PromptInput className="shadow-sm" onSubmit={handleSubmit}>

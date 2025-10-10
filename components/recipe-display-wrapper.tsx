@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic"
 
-// Dynamically import RecipeDisplay to prevent SSR issues with useArtifact
+// Dynamically import RecipeDisplay to prevent SSR issues with AI SDK hooks
 const RecipeDisplay = dynamic(() => import("./recipe-display").then(mod => ({ default: mod.RecipeDisplay })), {
   ssr: false,
   loading: () => (
