@@ -1,10 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { flushSync } from "react-dom"
 import { useArtifact } from "@ai-sdk-tools/artifacts/client"
+import { useChatMessages } from "@ai-sdk-tools/store"
 import { RecipeArtifact } from "@/lib/schema"
+import { useRecipeContext } from "@/contexts/recipe-context"
 import { RecipeLoadingState } from "./recipe-loading"
 import { RecipeHeader } from "./recipe-header"
+import { RecipeChefsNotes } from "./recipe-chefs-notes"
+import { RecipeTools } from "./recipe-tools"
 import { RecipeIngredients } from "./recipe-ingredients"
 import { RecipeInstructions } from "./recipe-instructions"
 import { RecipeTips } from "./recipe-tips"
@@ -14,7 +19,20 @@ import type { UnitSystem } from "@/lib/unit-conversion"
 
 export function RecipeDisplay() {
 	const [servingMultiplier, setServingMultiplier] = useState(1)
-	const [unitSystem, setUnitSystem] = useState<UnitSystem>('us')
+	const [unitSystem, setUnitSystem] = useState<UnitSystem>("us")
+
+	const messages = useChatMessages()
+	const {
+		addRecipeVersion,
+		loadRecipeVersion,
+		currentVersionId,
+		setCurrentVersionId,
+		handleLoadVersionRef,
+		displayRecipe,
+		setDisplayRecipe,
+		isViewingVersion,
+		setIsViewingVersion,
+	} = useRecipeContext()
 
 	const {
 		data: recipe,
@@ -23,24 +41,100 @@ export function RecipeDisplay() {
 		error,
 		isActive,
 	} = useArtifact(RecipeArtifact, {
-		onUpdate: (newData) => {
-			console.log("Recipe updated:", newData)
-		},
 		onComplete: (finalData) => {
-			console.log("Recipe complete!", finalData)
+			console.log("[RECIPE_ARTIFACT]: Recipe complete -", finalData.title)
 			// Reset serving multiplier when new recipe loads
 			setServingMultiplier(1)
+
+			// Save recipe version when complete
+			const assistantMessages = messages.filter((m) => m.role === "assistant")
+			const latestMessage = assistantMessages[assistantMessages.length - 1]
+			if (latestMessage && finalData) {
+				addRecipeVersion(finalData, latestMessage.id)
+				// Clear displayRecipe to show the new live recipe data
+				setDisplayRecipe(null)
+				setIsViewingVersion(false)
+			}
 		},
 		onError: (err) => {
-			console.error("Recipe generation failed:", err)
-		},
-		onProgress: (prog) => {
-			console.log("Progress:", Math.round(prog * 100) + "%")
-		},
-		onStatusChange: (newStatus, prevStatus) => {
-			console.log("Status:", prevStatus, "→", newStatus)
+			console.error("[RECIPE_ARTIFACT]: Generation failed -", err)
 		},
 	})
+
+	// Track the last message ID we processed to avoid re-clearing on every render
+	const lastProcessedMessageRef = useRef<string | null>(null)
+
+	// Clear display recipe when new conversation starts or new recipe is requested
+	useEffect(() => {
+		const assistantMessages = messages.filter((m) => m.role === "assistant")
+		if (assistantMessages.length > 0) {
+			// Check if the latest assistant message contains a recipe generation
+			const latestMessage = assistantMessages[assistantMessages.length - 1]
+
+			// Only process if this is a new message we haven't seen before
+			if (lastProcessedMessageRef.current !== latestMessage.id) {
+				const hasRecipeGeneration = latestMessage.parts.some(
+					(part) =>
+						part.type === "tool-generateRecipe" ||
+						part.type === "tool-call" ||
+						(part.type.startsWith("tool-") &&
+							part.type.includes("generateRecipe"))
+				)
+
+				if (hasRecipeGeneration) {
+					console.log("[RECIPE_DISPLAY]: New recipe generation detected")
+					// Use flushSync to ensure immediate state updates
+					flushSync(() => {
+						setDisplayRecipe(null)
+						setCurrentVersionId(null)
+						setIsViewingVersion(false)
+					})
+					lastProcessedMessageRef.current = latestMessage.id
+				}
+			}
+		}
+	}, [messages, setCurrentVersionId, setDisplayRecipe, setIsViewingVersion])
+
+	// Handle version loading - use useCallback to prevent stale closures
+	const handleLoadVersion = useCallback(
+		(versionId: string) => {
+			const loadedRecipe = loadRecipeVersion(versionId)
+			if (loadedRecipe) {
+				console.log("[VERSION_HISTORY]: Loading version -", loadedRecipe.title)
+				// Use flushSync to force synchronous state updates
+				flushSync(() => {
+					// Create a new object reference to force React to re-render
+					setDisplayRecipe({ ...loadedRecipe })
+					setIsViewingVersion(true) // Mark that we're viewing a specific version
+					setCurrentVersionId(versionId) // Ensure version ID is set
+				})
+			} else {
+				console.error("[VERSION_HISTORY]: Failed to load version -", versionId)
+			}
+		},
+		[
+			loadRecipeVersion,
+			setDisplayRecipe,
+			setIsViewingVersion,
+			setCurrentVersionId,
+		]
+	)
+
+	// Register the handler with the context ref
+	useEffect(() => {
+		handleLoadVersionRef.current = handleLoadVersion
+	}, [handleLoadVersion, handleLoadVersionRef])
+
+	// Use displayRecipe if viewing a version, otherwise use the live artifact data
+	// This prevents the live recipe from overwriting a manually loaded version
+	const currentRecipe = isViewingVersion
+		? displayRecipe
+		: displayRecipe || recipe
+
+	// Create a unique key to force re-render when switching between recipes
+	const recipeKey = isViewingVersion
+		? `version-${currentVersionId}-${displayRecipe?.title}`
+		: `live-${recipe?.title}`
 
 	// Map status to RecipeLoadingState status
 	const loadingStatus =
@@ -48,13 +142,19 @@ export function RecipeDisplay() {
 			? "loading"
 			: (status as "loading" | "streaming" | "complete" | "error")
 
-	// Loading state - show when actively generating
-	if (isActive && status !== "complete") {
+	// Loading state - show when actively generating and no cached recipe to display
+	// Don't show loading if we're viewing a specific version
+	if (
+		isActive &&
+		status !== "complete" &&
+		!displayRecipe &&
+		!isViewingVersion
+	) {
 		return <RecipeLoadingState progress={progress} status={loadingStatus} />
 	}
 
 	// Error state
-	if (error) {
+	if (error && !displayRecipe) {
 		const errorMessage = String(error)
 		return (
 			<div className="flex h-full items-center justify-center p-8">
@@ -70,7 +170,7 @@ export function RecipeDisplay() {
 	}
 
 	// No recipe yet
-	if (!recipe) {
+	if (!currentRecipe) {
 		return (
 			<div className="flex h-full items-center justify-center p-8">
 				<div className="text-center space-y-3">
@@ -88,53 +188,49 @@ export function RecipeDisplay() {
 
 	// Display recipe - streaming is handled by useArtifact hook updating recipe data progressively
 	return (
-		<div className="h-full overflow-y-auto">
+		<div className="h-full overflow-y-auto" key={recipeKey}>
 			<div className="p-12 space-y-16 max-w-5xl mx-auto">
-				<div className="animate-fade-in" style={{ animationDelay: '0ms' }}>
-					<RecipeHeader
-						recipe={recipe}
+				<RecipeHeader
+					recipe={currentRecipe}
+					servingMultiplier={servingMultiplier}
+					onServingChange={setServingMultiplier}
+					unitSystem={unitSystem}
+					onUnitSystemChange={setUnitSystem}
+				/>
+
+				{currentRecipe.chefsNotes && (
+					<RecipeChefsNotes notes={currentRecipe.chefsNotes} />
+				)}
+
+				{currentRecipe.toolsNeeded && currentRecipe.toolsNeeded.length > 0 && (
+					<RecipeTools tools={currentRecipe.toolsNeeded} />
+				)}
+
+				{currentRecipe.ingredients && currentRecipe.ingredients.length > 0 && (
+					<RecipeIngredients
+						ingredients={currentRecipe.ingredients}
 						servingMultiplier={servingMultiplier}
-						onServingChange={setServingMultiplier}
 						unitSystem={unitSystem}
-						onUnitSystemChange={setUnitSystem}
 					/>
-				</div>
-
-				{recipe.ingredients && recipe.ingredients.length > 0 && (
-					<div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-						<RecipeIngredients
-							ingredients={recipe.ingredients}
-							servingMultiplier={servingMultiplier}
-							unitSystem={unitSystem}
-						/>
-					</div>
 				)}
 
-				{recipe.steps && recipe.steps.length > 0 && (
-					<div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-						<RecipeInstructions steps={recipe.steps} />
-					</div>
+				{currentRecipe.steps && currentRecipe.steps.length > 0 && (
+					<RecipeInstructions steps={currentRecipe.steps} />
 				)}
 
-				{recipe.tips && (
-					<div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-						<RecipeTips tips={recipe.tips} />
-					</div>
+				{currentRecipe.tips && currentRecipe.tips.length > 0 && (
+					<RecipeTips tips={currentRecipe.tips} />
 				)}
 
-				{recipe.nutritionEstimate && (
-					<div className="animate-fade-in" style={{ animationDelay: '400ms' }}>
-						<RecipeNutrition
-							nutrition={recipe.nutritionEstimate}
-							servingMultiplier={servingMultiplier}
-						/>
-					</div>
+				{currentRecipe.nutritionEstimate && (
+					<RecipeNutrition
+						nutrition={currentRecipe.nutritionEstimate}
+						servingMultiplier={servingMultiplier}
+					/>
 				)}
 
-				{recipe.sources && recipe.sources.length > 0 && (
-					<div className="animate-fade-in" style={{ animationDelay: '500ms' }}>
-						<RecipeSources sources={recipe.sources} />
-					</div>
+				{currentRecipe.sources && currentRecipe.sources.length > 0 && (
+					<RecipeSources sources={currentRecipe.sources} />
 				)}
 			</div>
 		</div>
