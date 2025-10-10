@@ -1,6 +1,7 @@
 "use client";
 
 import { Item, ItemContent } from "@/components/ui/item";
+import { TextAnimate } from "@/components/ui/text-animate";
 import { ActivityIcon } from "lucide-react";
 import type { Recipe } from "@/lib/types";
 
@@ -31,7 +32,14 @@ export function RecipeNutrition({ nutrition, servingMultiplier }: RecipeNutritio
     <div className="space-y-8">
       <h2 className="text-3xl font-bold flex items-center gap-3">
         <ActivityIcon className="size-7 text-primary" />
-        Nutrition Facts
+        <TextAnimate
+          animation="slideUp"
+          delay={0.05}
+          by="word"
+          once
+        >
+          Nutrition Facts
+        </TextAnimate>
       </h2>
 
       <div className="bg-card border border-border rounded-xl p-8">
@@ -39,7 +47,16 @@ export function RecipeNutrition({ nutrition, servingMultiplier }: RecipeNutritio
           {/* Calories - Highlighted */}
           <div className="pb-6 border-b-2 border-border">
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">Calories</span>
+              <TextAnimate
+                animation="scaleUp"
+                as="span"
+                className="text-2xl font-bold"
+                delay={0.1}
+                by="word"
+                once
+              >
+                Calories
+              </TextAnimate>
               <span className="text-4xl font-bold text-primary">{scaledCalories}</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">per serving</p>

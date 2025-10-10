@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { Item, ItemContent } from "@/components/ui/item"
 import { Checkbox } from "@/components/ui/checkbox"
+import { TextAnimate } from "@/components/ui/text-animate"
 import { ShoppingCartIcon } from "lucide-react"
 import {
 	convertAmount,
@@ -125,21 +126,40 @@ export function RecipeIngredients({
 			<div className="flex items-center justify-between flex-wrap gap-4">
 				<h2 className="text-3xl font-bold flex items-center gap-3">
 					<ShoppingCartIcon className="size-7 text-primary" />
-					Ingredients
+				<TextAnimate
+					animation="slideUp"
+					delay={0.05}
+					by="word"
+					once
+				>
+						Ingredients
+					</TextAnimate>
 				</h2>
 				{checkedCount > 0 && (
-					<div className="text-base text-muted-foreground font-medium">
-						{checkedCount} of {totalCount} gathered
-					</div>
+				<TextAnimate
+					animation="fadeIn"
+					className="text-base text-muted-foreground font-medium"
+					delay={0.1}
+					once
+				>
+						{`${checkedCount} of ${totalCount} gathered`}
+					</TextAnimate>
 				)}
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-				{Object.entries(grouped).map(([groupKey, items]) => (
+				{Object.entries(grouped).map(([groupKey, items], groupIndex) => (
 					<div key={groupKey} className="space-y-4">
-						<h3 className="text-base font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 pb-2 border-b border-border/50">
-							{hasSections ? groupKey : categoryLabels[groupKey] || groupKey}
-						</h3>
+					<TextAnimate
+						animation="blurIn"
+						as="h3"
+						className="text-base font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 pb-2 border-b border-border/50"
+						delay={0.1 + groupIndex * 0.05}
+						by="word"
+						once
+					>
+							{String(hasSections ? groupKey : categoryLabels[groupKey] || groupKey)}
+						</TextAnimate>
 						<div className="space-y-3">
 							{items.map((ingredient) => {
 								const isChecked = checkedItems.has(ingredient.originalIndex)

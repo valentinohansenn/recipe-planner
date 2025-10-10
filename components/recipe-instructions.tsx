@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ClockIcon, ChefHatIcon, CheckCircle2Icon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { TextAnimate } from "@/components/ui/text-animate";
+import { formatTime } from "@/lib/time-format";
 import type { Recipe } from "@/lib/types";
 
 interface RecipeInstructionsProps {
@@ -45,7 +47,14 @@ export function RecipeInstructions({ steps }: RecipeInstructionsProps) {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-3xl font-bold flex items-center gap-3">
           <ChefHatIcon className="size-7 text-primary" />
-          Instructions
+          <TextAnimate
+            animation="slideUp"
+            delay={0.05}
+            by="word"
+            once
+          >
+            Instructions
+          </TextAnimate>
         </h2>
         {completedCount > 0 && (
           <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
@@ -61,18 +70,32 @@ export function RecipeInstructions({ steps }: RecipeInstructionsProps) {
             <ClockIcon className="size-5 text-amber-700 dark:text-amber-300" />
           </div>
           <span className="text-base text-amber-900 dark:text-amber-100">
-            Total time: <strong className="font-semibold">{totalTime} minutes</strong>
+          <TextAnimate
+            animation="fadeIn"
+            delay={0.1}
+            by="word"
+            once
+          >
+              {`Total time: ${formatTime(totalTime)}`}
+            </TextAnimate>
           </span>
         </div>
       )}
 
       <div className="space-y-10">
-        {Object.entries(groupedSteps).map(([section, sectionSteps]) => (
+        {Object.entries(groupedSteps).map(([section, sectionSteps], sectionIndex) => (
           <div key={section} className="space-y-5">
             {hasSections && (
-              <h3 className="text-xl font-bold text-foreground pb-2 border-b border-border/50">
-                {section}
-              </h3>
+              <TextAnimate
+                animation="blurIn"
+                as="h3"
+                className="text-xl font-bold text-foreground pb-2 border-b border-border/50"
+                delay={0.1 + sectionIndex * 0.05}
+                by="word"
+                once
+              >
+                {String(section)}
+              </TextAnimate>
             )}
             <div className="space-y-5">
               {sectionSteps.map((step, index) => {
@@ -109,17 +132,24 @@ export function RecipeInstructions({ steps }: RecipeInstructionsProps) {
                   />
                 </div>
 
-                <div className="flex-1 space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <p className={`text-lg leading-relaxed transition-all ${
-                        isCompleted
-                          ? "text-muted-foreground line-through"
-                          : "text-foreground"
-                      }`}>
-                        {step.instruction}
-                      </p>
-                    </div>
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <TextAnimate
+                          animation="slideUp"
+                          as="p"
+                          className={`text-lg leading-relaxed transition-all ${
+                            isCompleted
+                              ? "text-muted-foreground line-through"
+                              : "text-foreground"
+                          }`}
+                          delay={0.15 + index * 0.02}
+                          by="word"
+                          once
+                        >
+                          {step.instruction || ""}
+                        </TextAnimate>
+                      </div>
                     {isNext && !isCompleted && (
                       <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 shrink-0 px-3 py-1">
                         <span className="text-sm">Up Next</span>
@@ -130,7 +160,7 @@ export function RecipeInstructions({ steps }: RecipeInstructionsProps) {
                   {step.duration && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
                       <ClockIcon className="size-4" />
-                      <span>{step.duration} minutes</span>
+                      <span>{formatTime(step.duration)}</span>
                     </div>
                   )}
                 </div>
@@ -146,12 +176,26 @@ export function RecipeInstructions({ steps }: RecipeInstructionsProps) {
       {completedCount === steps.length && steps.length > 0 && (
         <div className="bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-2xl p-8 text-center space-y-3">
           <div className="text-5xl mb-2">🎉</div>
-          <h3 className="text-2xl font-bold text-green-900 dark:text-green-100">
+          <TextAnimate
+            animation="blurInUp"
+            as="h3"
+            className="text-2xl font-bold text-green-900 dark:text-green-100"
+            delay={0.1}
+            by="word"
+            once
+          >
             All Done!
-          </h3>
-          <p className="text-base text-green-700 dark:text-green-300 max-w-md mx-auto">
+          </TextAnimate>
+          <TextAnimate
+            animation="fadeIn"
+            as="p"
+            className="text-base text-green-700 dark:text-green-300 max-w-md mx-auto"
+            delay={0.15}
+            by="word"
+            once
+          >
             Time to enjoy your delicious creation!
-          </p>
+          </TextAnimate>
         </div>
       )}
     </div>

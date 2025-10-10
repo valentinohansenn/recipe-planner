@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TextAnimate } from "@/components/ui/text-animate";
 import { LightbulbIcon } from "lucide-react";
 
 interface RecipeTipsProps {
@@ -14,7 +15,16 @@ export function RecipeTips({ tips }: RecipeTipsProps) {
     <div className="space-y-8">
       <div className="flex items-center gap-3">
         <LightbulbIcon className="size-7 text-primary" />
-        <h2 className="text-3xl font-bold">Tips & Tricks</h2>
+        <TextAnimate
+          animation="slideUp"
+          as="h2"
+          className="text-3xl font-bold"
+          delay={0.05}
+          by="word"
+          once
+        >
+          Tips & Tricks
+        </TextAnimate>
       </div>
 
       <Alert className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl p-6">
@@ -28,9 +38,16 @@ export function RecipeTips({ tips }: RecipeTipsProps) {
                   </span>
                 </div>
               </div>
-              <p className="text-base text-foreground leading-relaxed flex-1">
-                {tip}
-              </p>
+              <TextAnimate
+                animation="fadeIn"
+                as="p"
+                className="text-base text-foreground leading-relaxed flex-1"
+                delay={0.1 + index * 0.05}
+                by="word"
+                once
+              >
+                {tip || ""}
+              </TextAnimate>
             </div>
           ))}
         </AlertDescription>

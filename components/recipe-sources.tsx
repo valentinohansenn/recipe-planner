@@ -6,6 +6,7 @@ import {
   SourcesContent,
   Source,
 } from "@/components/ai-elements/sources";
+import { TextAnimate } from "@/components/ui/text-animate";
 import { BookOpenIcon } from "lucide-react";
 
 interface RecipeSource {
@@ -25,7 +26,16 @@ export function RecipeSources({ sources }: RecipeSourcesProps) {
     <div className="space-y-8">
       <div className="flex items-center gap-3">
         <BookOpenIcon className="size-7 text-primary" />
-        <h2 className="text-3xl font-bold">Sources</h2>
+        <TextAnimate
+          animation="slideUp"
+          as="h2"
+          className="text-3xl font-bold"
+          delay={0.05}
+          by="word"
+          once
+        >
+          Sources
+        </TextAnimate>
       </div>
 
       <Sources className="text-base">
