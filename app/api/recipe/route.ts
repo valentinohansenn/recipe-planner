@@ -1,11 +1,10 @@
-import { system } from '@/lib/system-prompt'
+import { system } from '@/lib/prompt'
 import {
     generateRecipeTool,
-    processScrapedRecipeTool,
     searchRecipesTool,
 } from '@/lib/tools'
 import { google } from '@ai-sdk/google'
-import { streamText, createUIMessageStream, createUIMessageStreamResponse, convertToModelMessages } from 'ai'
+import { streamText, createUIMessageStream, createUIMessageStreamResponse, convertToModelMessages, stepCountIs } from 'ai'
 import { artifacts } from '@ai-sdk-tools/artifacts'
 
 export async function POST(req: Request) {
@@ -14,6 +13,14 @@ export async function POST(req: Request) {
 
         console.log('Received recipe request with', messages.length, 'messages')
         console.log('Latest message:', messages[messages.length - 1])
+
+        // Log tool calls for debugging
+        const lastMessage = messages[messages.length - 1]
+        if (lastMessage?.parts) {
+            const toolCalls = lastMessage.parts.filter((part: any) => part.type?.startsWith('tool'))
+            console.log('Tool calls in last message:', toolCalls.length)
+            toolCalls.forEach((call: any) => console.log('Tool call:', call.type, call))
+        }
 
         // Create UI message stream with artifact context
         const stream = createUIMessageStream({
@@ -29,14 +36,14 @@ export async function POST(req: Request) {
                     tools: {
                         generateRecipe: generateRecipeTool,
                         searchRecipes: searchRecipesTool,
-                        processScrapedRecipe: processScrapedRecipeTool,
                     },
-                    toolChoice: 'required',
+                    toolChoice: 'auto',
+                    temperature: 0.7, // Balanced creativity and consistency
                 })
 
                 // Merge the result stream into the writer
                 writer.merge(result.toUIMessageStream())
-            }
+            },
         })
 
         return createUIMessageStreamResponse({ stream })
