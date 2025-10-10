@@ -1,5 +1,12 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import {
+	Funnel_Sans,
+	Geist,
+	Geist_Mono,
+	Outfit,
+	Plus_Jakarta_Sans,
+	Space_Grotesk,
+} from "next/font/google"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -9,6 +16,16 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
+	subsets: ["latin"],
+})
+
+const outfit = Outfit({
+	variable: "--font-outfit",
+	subsets: ["latin"],
+})
+
+const funnelSans = Funnel_Sans({
+	variable: "--font-funnel-sans",
 	subsets: ["latin"],
 })
 
@@ -26,7 +43,7 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${funnelSans.variable} font-sans antialiased`}
 			>
 				{children}
 			</body>
