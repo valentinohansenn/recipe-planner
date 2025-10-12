@@ -1,12 +1,5 @@
 import type { Metadata } from "next"
-import {
-	Funnel_Sans,
-	Geist,
-	Geist_Mono,
-	Outfit,
-	Plus_Jakarta_Sans,
-	Space_Grotesk,
-} from "next/font/google"
+import { Funnel_Sans, Geist, Geist_Mono, Outfit } from "next/font/google"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -41,9 +34,9 @@ export default function RootLayout({
 	children: React.ReactNode
 }>) {
 	return (
-		<html lang="en">
+		<html lang="en" className="h-full overflow-hidden">
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${funnelSans.variable} font-sans antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${funnelSans.variable} font-sans antialiased h-full overflow-hidden`}
 			>
 				{children}
 			</body>

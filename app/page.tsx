@@ -8,6 +8,7 @@ import { LeftPanel } from "@/components/left-panel-wrapper"
 import { RecipeDisplay } from "@/components/recipe-display-wrapper"
 import { RecipeProvider } from "@/contexts/recipe-context"
 import { AIDevtools } from "@ai-sdk-tools/devtools"
+import { MobileChatDrawer } from "@/components/mobile-chat-drawer"
 
 // Disable static generation for this page since it uses client-side hooks
 export const dynamic = "force-dynamic"
@@ -60,19 +61,19 @@ export default function Home() {
 	return (
 		<RecipeProvider>
 			<div className="flex h-screen bg-background">
-				{/* Left Panel - 40% */}
+				{/* Desktop: Left Panel - 40% */}
 				<div className="hidden lg:flex lg:w-[40%] flex-col border-r animate-slide-in-left">
 					<LeftPanel />
 				</div>
 
-				{/* Right Panel - 60% */}
+				{/* Desktop & Mobile: Recipe Display - 60% on desktop, 100% on mobile */}
 				<div className="flex-1 overflow-hidden animate-slide-in-right">
 					<RecipeDisplay />
 				</div>
 
-				{/* Mobile: Show full width recipe, chat in drawer (future enhancement) */}
-				<div className="lg:hidden flex-1">
-					<RecipeDisplay />
+				{/* Mobile: Chat Drawer */}
+				<div className="lg:hidden">
+					<MobileChatDrawer />
 				</div>
 
 				<AIDevtools />
