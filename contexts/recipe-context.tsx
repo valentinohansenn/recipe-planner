@@ -1,6 +1,14 @@
 "use client"
 
-import { createContext, useContext, useState, useRef, ReactNode } from "react"
+import {
+	createContext,
+	useContext,
+	useState,
+	useRef,
+	ReactNode,
+	useMemo,
+	useCallback,
+} from "react"
 import type { Recipe } from "@/lib/schema"
 
 interface RecipeVersion {
@@ -38,15 +46,17 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
 	const [displayRecipe, setDisplayRecipe] = useState<Recipe | null>(null)
 	const [isViewingVersion, setIsViewingVersion] = useState(false)
 
-	const addRecipeVersion = (recipe: Recipe, messageId: string) => {
+	const addRecipeVersion = useCallback((recipe: Recipe, messageId: string) => {
 		// Check if this recipe already exists for this message to prevent duplicates
+		let versionIdToSet: string | null = null
+
 		setRecipeVersions((prev) => {
 			const existingVersion = prev.find(
 				(v) => v.messageId === messageId && v.title === recipe.title
 			)
 
 			if (existingVersion) {
-				setCurrentVersionId(existingVersion.id)
+				versionIdToSet = existingVersion.id
 				return prev
 			}
 
@@ -62,37 +72,56 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
 			}
 
 			console.log("[VERSION_HISTORY]: Added version -", recipe.title)
-			setCurrentVersionId(versionId)
+			versionIdToSet = versionId
 			return [...prev, newVersion]
 		})
-	}
 
-	const loadRecipeVersion = (versionId: string): Recipe | null => {
-		const version = recipeVersions.find((v) => v.id === versionId)
-		if (version) {
-			// Don't set currentVersionId here - let the caller handle it
-			return version.recipe
+		// Set the version ID after the state update completes
+		if (versionIdToSet) {
+			setCurrentVersionId(versionIdToSet)
 		}
-		return null
-	}
+	}, [])
+
+	const loadRecipeVersion = useCallback(
+		(versionId: string): Recipe | null => {
+			const version = recipeVersions.find((v) => v.id === versionId)
+			if (version) {
+				// Don't set currentVersionId here - let the caller handle it
+				return version.recipe
+			}
+			return null
+		},
+		[recipeVersions]
+	)
+
+	const contextValue = useMemo(
+		() => ({
+			defaultServings,
+			setDefaultServings,
+			recipeVersions,
+			addRecipeVersion,
+			loadRecipeVersion,
+			currentVersionId,
+			setCurrentVersionId,
+			handleLoadVersionRef,
+			displayRecipe,
+			setDisplayRecipe,
+			isViewingVersion,
+			setIsViewingVersion,
+		}),
+		[
+			defaultServings,
+			recipeVersions,
+			addRecipeVersion,
+			loadRecipeVersion,
+			currentVersionId,
+			displayRecipe,
+			isViewingVersion,
+		]
+	)
 
 	return (
-		<RecipeContext.Provider
-			value={{
-				defaultServings,
-				setDefaultServings,
-				recipeVersions,
-				addRecipeVersion,
-				loadRecipeVersion,
-				currentVersionId,
-				setCurrentVersionId,
-				handleLoadVersionRef,
-				displayRecipe,
-				setDisplayRecipe,
-				isViewingVersion,
-				setIsViewingVersion,
-			}}
-		>
+		<RecipeContext.Provider value={contextValue}>
 			{children}
 		</RecipeContext.Provider>
 	)
