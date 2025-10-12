@@ -1,4 +1,4 @@
-// import { createCacheBackend, createCachedFunction } from '@ai-sdk-tools/cache/'
+// import { createCacheBackend } from '@ai-sdk-tools/cache'
 // import Redis from 'redis';
 
 // // Environment-aware cache backend

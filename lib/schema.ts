@@ -9,20 +9,22 @@ export const recipeSchema = z.object({
     chillTime: z.number().optional().describe('Chilling/resting time in minutes if applicable'),
     servings: z.number().describe('Number of servings'),
     difficulty: z.enum(['easy', 'medium', 'hard']).describe('Recipe difficulty level'),
-    chefsNotes: z.string().optional().describe('Chef Shanice\'s detailed notes about the recipe, techniques, and philosophy. Be detailed and conversational.'),
+    chefsNotes: z.string().max(800).optional().describe('Chef Shanice\'s concise notes (150-200 words max). Focus on the most critical technique, key ingredient choice, or essential success tip. Be warm but direct.'),
     toolsNeeded: z.array(z.string()).optional().describe('List of all kitchen tools and equipment needed for this recipe'),
     ingredients: z.array(
         z.object({
             item: z.string(),
             amount: z.string(),
-            category: z.enum(['protein', 'vegetable', 'grain', 'dairy', 'spice', 'other'])
+            category: z.enum(['protein', 'vegetable', 'grain', 'dairy', 'spice', 'other']),
+            section: z.string().optional()
         })
     ).describe('List of ingredients with amounts'),
     steps: z.array(
         z.object({
             stepNumber: z.number(),
             instruction: z.string(),
-            duration: z.number().optional()
+            duration: z.number().optional(),
+            section: z.string().optional()
         })
     ).describe('Step-by-step cooking instructions'),
     tips: z.array(z.string()).optional().describe('Helpful cooking tips'),

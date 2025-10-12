@@ -33,82 +33,82 @@ export const searchRecipesTool = tool({
         source: z.enum(['any', 'blogs', 'youtube', 'chefs']).default('any').describe('Source preference')
     }),
     execute: async ({ query, includeVideos, dietaryFilter, source }) => {
-    const domains = {
-        blogs: [
-            'seriouseats.com',
-            'bonappetit.com',
-            'foodnetwork.com',
-            'epicurious.com',
-            'delish.com',
-            'thekitchn.com',
-            'tasty.co'
-        ],
-        youtube: ['youtube.com'],
-        chefs: [
-            'gordonramsay.com',
-            'jamieoliver.com',
-            'joshuaweissman.com',
-            'cooking.nytimes.com'
-        ],
-        any: []
+        const domains = {
+            blogs: [
+                'seriouseats.com',
+                'bonappetit.com',
+                'foodnetwork.com',
+                'epicurious.com',
+                'delish.com',
+                'thekitchn.com',
+                'tasty.co'
+            ],
+            youtube: ['youtube.com'],
+            chefs: [
+                'gordonramsay.com',
+                'jamieoliver.com',
+                'joshuaweissman.com',
+                'cooking.nytimes.com'
+            ],
+            any: []
         }
 
         const includeDomains = domains[source] || []
         const enhancedQuery = dietaryFilter ? `${query} with ${dietaryFilter}` : query
 
-    try {
-        const results = await exa.searchAndContents(enhancedQuery, {
-            type: 'auto',
-            numResults: 5,
-            text: true,
-            highlights: true,
-            includeDomains: includeDomains.length > 0 ? includeDomains : undefined,
-            })
-
-            let videoResults: ExaSearchResult[] = []
-        if (includeVideos) {
-            const videoSearch = await exa.searchAndContents(enhancedQuery, {
+        try {
+            const results = await exa.searchAndContents(enhancedQuery, {
                 type: 'auto',
                 numResults: 5,
                 text: true,
                 highlights: true,
-                includeDomains: domains.youtube,
+                includeDomains: includeDomains.length > 0 ? includeDomains : undefined,
+            })
+
+            let videoResults: ExaSearchResult[] = []
+            if (includeVideos) {
+                const videoSearch = await exa.searchAndContents(enhancedQuery, {
+                    type: 'auto',
+                    numResults: 5,
+                    text: true,
+                    highlights: true,
+                    includeDomains: domains.youtube,
                 })
                 videoResults = videoSearch.results
-        }
+            }
 
             const recipes = results.results.map((result) => ({
                 title: result.title || 'Untitled',
-            url: result.url,
-            source: new URL(result.url).hostname.replace('www.', ''),
-            excerpt: result.highlights?.[0] || result.text?.substring(0, 500),
+                url: result.url,
+                source: new URL(result.url).hostname.replace('www.', ''),
+                excerpt: result.highlights?.[0] || result.text?.substring(0, 500),
                 fullText: result.text?.substring(0, 3000), // Increased for more context
-            relevanceScore: result.score
+                relevanceScore: result.score
             }))
 
-        const videos = videoResults.map(video => ({
+            const videos = videoResults.map(video => ({
                 title: video.title || 'Untitled Video',
-            url: video.url,
-            excerpt: video.text?.substring(0, 300),
+                url: video.url,
+                excerpt: video.text?.substring(0, 300),
             }))
 
-        return {
-            query: enhancedQuery,
-            recipesFound: recipes.length,
-            recipes,
-            videos: includeVideos ? videos : [],
+            return {
+                query: enhancedQuery,
+                recipesFound: recipes.length,
+                recipes,
+                videos: includeVideos ? videos : [],
                 message: `✅ Found ${recipes.length} excellent recipes${includeVideos ? ` and ${videos.length} videos` : ''} for "${enhancedQuery}"!
 
 🚨 CRITICAL: You MUST immediately call generateRecipe tool now. Do not stop, do not wait, do not ask the user anything. Call generateRecipe with these sources right now in this same response.
 
 Pass this entire 'recipes' array as the 'sources' parameter to synthesize a comprehensive recipe.`
             }
-    } catch (error: unknown) {
-        return {
-            query: enhancedQuery,
-            recipesFound: 0,
-            recipes: [],
-            videos: [],
+        } catch (error: unknown) {
+            return {
+                query: enhancedQuery,
+                recipesFound: 0,
+                recipes: [],
+                videos: [],
                 message: `Error searching for recipes: ${error instanceof Error ? error.message : 'Unknown error'}. You should still call generateRecipe to create a recipe based on your expertise.`
             }
         }
@@ -193,7 +193,7 @@ ${sources && sources.length > 0 ? 'Synthesize the information from the reference
 
         // Stream the recipe generation using streamObject
         const { partialObjectStream, object } = streamObject({
-            model: google('gemini-2.0-flash-exp'),
+            model: google('gemini-2.5-flash'),
             schema: recipeSchema,
             system: generateRecipeSystem,
             prompt: prompt,
