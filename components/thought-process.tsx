@@ -6,12 +6,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import {
-	Item,
-	ItemContent,
-	ItemMedia,
-	ItemTitle,
-} from "@/components/ui/item"
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
 import {
 	CheckCircleIcon,
 	CircleIcon,
@@ -22,6 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader } from "@/components/ai-elements/loader"
 import { cn } from "@/lib/utils"
 import type { ThoughtStep } from "@/lib/types"
+import { ShimmeringText } from "@/components/animate-ui/primitives/texts/shimmering"
 
 interface ThoughtProcessModuleProps {
 	steps: ThoughtStep[]
@@ -103,7 +99,10 @@ export function ThoughtProcessModule({ steps }: ThoughtProcessModuleProps) {
 										)}
 										{step.status === "active" && (
 											<div className="p-1 rounded-full bg-blue-100 dark:bg-blue-900">
-												<Loader size={14} className="text-blue-600 dark:text-blue-400" />
+												<Loader
+													size={14}
+													className="text-blue-600 dark:text-blue-400"
+												/>
 											</div>
 										)}
 										{step.status === "pending" && (
@@ -119,19 +118,29 @@ export function ThoughtProcessModule({ steps }: ThoughtProcessModuleProps) {
 									</div>
 
 									<div className="flex-1 min-w-0">
-										<p
-											className={cn(
-												"text-sm font-medium leading-tight",
-												step.status === "completed" &&
-													"text-green-600 dark:text-green-400",
-												step.status === "active" &&
-													"text-blue-600 dark:text-blue-400",
-												step.status === "pending" && "text-muted-foreground",
-												step.status === "error" && "text-red-600 dark:text-red-400"
-											)}
-										>
-											{step.title}
-										</p>
+										{step.status === "active" ? (
+											<div className="text-sm font-medium leading-tight text-blue-600 dark:text-blue-400">
+												<ShimmeringText
+													text={step.title}
+													duration={2}
+													wave={false}
+													className="text-sm font-medium"
+												/>
+											</div>
+										) : (
+											<p
+												className={cn(
+													"text-sm font-medium leading-tight",
+													step.status === "completed" &&
+														"text-green-600 dark:text-green-400",
+													step.status === "pending" && "text-muted-foreground",
+													step.status === "error" &&
+														"text-red-600 dark:text-red-400"
+												)}
+											>
+												{step.title}
+											</p>
+										)}
 										<p className="text-xs text-muted-foreground mt-1 leading-relaxed">
 											{step.description}
 										</p>
