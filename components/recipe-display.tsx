@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { flushSync } from "react-dom"
 import { useArtifact } from "@ai-sdk-tools/artifacts/client"
 import { useChatMessages } from "@ai-sdk-tools/store"
 import { RecipeArtifact } from "@/lib/schema"
@@ -16,6 +15,12 @@ import { RecipeTips } from "./recipe-tips"
 import { RecipeNutrition } from "./recipe-nutrition"
 import { RecipeSources } from "./recipe-sources"
 import type { UnitSystem } from "@/lib/unit-conversion"
+import BlurText from "@/components/BlurText"
+import {
+	ScrollProgressProvider,
+	ScrollProgress,
+	ScrollProgressContainer,
+} from "@/components/animate-ui/primitives/animate/scroll-progress"
 
 export function RecipeDisplay() {
 	const [servingMultiplier, setServingMultiplier] = useState(1)
@@ -75,16 +80,22 @@ export function RecipeDisplay() {
 			if (lastProcessedMessageRef.current !== latestMessage.id) {
 				const hasRecipeGeneration = latestMessage.parts.some(
 					(part) =>
-						part.type === "tool-generateRecipe" ||
+						part.type === "tool-call-createRecipe" ||
+						part.type === "tool-createRecipe" ||
 						part.type === "tool-call" ||
 						(part.type.startsWith("tool-") &&
-							part.type.includes("generateRecipe"))
+							(part.type.includes("createRecipe") ||
+								part.type.includes("generateRecipe")))
 				)
 
 				if (hasRecipeGeneration) {
-					console.log("[RECIPE_DISPLAY]: New recipe generation detected")
-					// Use flushSync to ensure immediate state updates
-					flushSync(() => {
+					console.log(
+						"[RECIPE_DISPLAY]: New recipe generation detected for message:",
+						latestMessage.id
+					)
+					// Clear display state for new recipe
+					// Using queueMicrotask to avoid flushSync error during render
+					queueMicrotask(() => {
 						setDisplayRecipe(null)
 						setCurrentVersionId(null)
 						setIsViewingVersion(false)
@@ -101,13 +112,10 @@ export function RecipeDisplay() {
 			const loadedRecipe = loadRecipeVersion(versionId)
 			if (loadedRecipe) {
 				console.log("[VERSION_HISTORY]: Loading version -", loadedRecipe.title)
-				// Use flushSync to force synchronous state updates
-				flushSync(() => {
-					// Create a new object reference to force React to re-render
-					setDisplayRecipe({ ...loadedRecipe })
-					setIsViewingVersion(true) // Mark that we're viewing a specific version
-					setCurrentVersionId(versionId) // Ensure version ID is set
-				})
+				// Create a new object reference to force React to re-render
+				setDisplayRecipe({ ...loadedRecipe })
+				setIsViewingVersion(true) // Mark that we're viewing a specific version
+				setCurrentVersionId(versionId) // Ensure version ID is set
 			} else {
 				console.error("[VERSION_HISTORY]: Failed to load version -", versionId)
 			}
@@ -173,14 +181,20 @@ export function RecipeDisplay() {
 	if (!currentRecipe) {
 		return (
 			<div className="flex h-full items-center justify-center p-8">
-				<div className="text-center space-y-3">
+				<div className="text-center space-y-4">
 					<div className="text-6xl">🍳</div>
-					<h3 className="text-xl font-medium text-muted-foreground">
-						Your recipe will appear here
-					</h3>
-					<p className="text-sm text-muted-foreground">
-						Start by telling me what you&apos;d like to cook
-					</p>
+					<BlurText
+						text="Your recipe will appear here"
+						className="text-xl font-medium text-muted-foreground"
+						animateBy="words"
+						delay={100}
+					/>
+					<BlurText
+						text="Start by telling me what you'd like to cook"
+						className="text-sm text-muted-foreground"
+						animateBy="words"
+						delay={80}
+					/>
 				</div>
 			</div>
 		)
@@ -188,51 +202,63 @@ export function RecipeDisplay() {
 
 	// Display recipe - streaming is handled by useArtifact hook updating recipe data progressively
 	return (
-		<div className="h-full overflow-y-auto" key={recipeKey}>
-			<div className="p-12 space-y-16 max-w-5xl mx-auto">
-				<RecipeHeader
-					recipe={currentRecipe}
-					servingMultiplier={servingMultiplier}
-					onServingChange={setServingMultiplier}
-					unitSystem={unitSystem}
-					onUnitSystemChange={setUnitSystem}
-				/>
+		<div className="h-full relative" key={recipeKey}>
+			<ScrollProgressProvider global={false} direction="vertical">
+				{/* Scroll Progress Bar */}
+				<div className="fixed top-0 left-0 lg:left-[40%] right-0 z-50 pointer-events-none">
+					<ScrollProgress className="bg-primary h-1 shadow-lg" />
+				</div>
 
-				{currentRecipe.chefsNotes && (
-					<RecipeChefsNotes notes={currentRecipe.chefsNotes} />
-				)}
+				{/* Scrollable Recipe Content */}
+				<ScrollProgressContainer className="h-full overflow-y-auto">
+					<div className="p-4 md:p-12 space-y-8 md:space-y-16 max-w-5xl mx-auto pb-24 md:pb-12">
+						<RecipeHeader
+							recipe={currentRecipe}
+							servingMultiplier={servingMultiplier}
+							onServingChange={setServingMultiplier}
+							unitSystem={unitSystem}
+							onUnitSystemChange={setUnitSystem}
+						/>
 
-				{currentRecipe.toolsNeeded && currentRecipe.toolsNeeded.length > 0 && (
-					<RecipeTools tools={currentRecipe.toolsNeeded} />
-				)}
+						{currentRecipe.chefsNotes && (
+							<RecipeChefsNotes notes={currentRecipe.chefsNotes} />
+						)}
 
-				{currentRecipe.ingredients && currentRecipe.ingredients.length > 0 && (
-					<RecipeIngredients
-						ingredients={currentRecipe.ingredients}
-						servingMultiplier={servingMultiplier}
-						unitSystem={unitSystem}
-					/>
-				)}
+						{currentRecipe.toolsNeeded &&
+							currentRecipe.toolsNeeded.length > 0 && (
+								<RecipeTools tools={currentRecipe.toolsNeeded} />
+							)}
 
-				{currentRecipe.steps && currentRecipe.steps.length > 0 && (
-					<RecipeInstructions steps={currentRecipe.steps} />
-				)}
+						{currentRecipe.ingredients &&
+							currentRecipe.ingredients.length > 0 && (
+								<RecipeIngredients
+									ingredients={currentRecipe.ingredients}
+									servingMultiplier={servingMultiplier}
+									unitSystem={unitSystem}
+								/>
+							)}
 
-				{currentRecipe.tips && currentRecipe.tips.length > 0 && (
-					<RecipeTips tips={currentRecipe.tips} />
-				)}
+						{currentRecipe.steps && currentRecipe.steps.length > 0 && (
+							<RecipeInstructions steps={currentRecipe.steps} />
+						)}
 
-				{currentRecipe.nutritionEstimate && (
-					<RecipeNutrition
-						nutrition={currentRecipe.nutritionEstimate}
-						servingMultiplier={servingMultiplier}
-					/>
-				)}
+						{currentRecipe.tips && currentRecipe.tips.length > 0 && (
+							<RecipeTips tips={currentRecipe.tips} />
+						)}
 
-				{currentRecipe.sources && currentRecipe.sources.length > 0 && (
-					<RecipeSources sources={currentRecipe.sources} />
-				)}
-			</div>
+						{currentRecipe.nutritionEstimate && (
+							<RecipeNutrition
+								nutrition={currentRecipe.nutritionEstimate}
+								servingMultiplier={servingMultiplier}
+							/>
+						)}
+
+						{currentRecipe.sources && currentRecipe.sources.length > 0 && (
+							<RecipeSources sources={currentRecipe.sources} />
+						)}
+					</div>
+				</ScrollProgressContainer>
+			</ScrollProgressProvider>
 		</div>
 	)
 }

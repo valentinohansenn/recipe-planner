@@ -122,26 +122,21 @@ export function RecipeIngredients({
 	const totalCount = scaledIngredients.length
 
 	return (
-		<div className="space-y-8">
+		<div className="space-y-6 md:space-y-8">
 			<div className="flex items-center justify-between flex-wrap gap-4">
-				<h2 className="text-3xl font-bold flex items-center gap-3">
-					<ShoppingCartIcon className="size-7 text-primary" />
-				<TextAnimate
-					animation="slideUp"
-					delay={0.05}
-					by="word"
-					once
-				>
+				<h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+					<ShoppingCartIcon className="size-5 md:size-7 text-primary" />
+					<TextAnimate animation="slideUp" delay={0.05} by="word" once>
 						Ingredients
 					</TextAnimate>
 				</h2>
 				{checkedCount > 0 && (
-				<TextAnimate
-					animation="fadeIn"
-					className="text-base text-muted-foreground font-medium"
-					delay={0.1}
-					once
-				>
+					<TextAnimate
+						animation="fadeIn"
+						className="text-sm md:text-base text-muted-foreground font-medium"
+						delay={0.1}
+						once
+					>
 						{`${checkedCount} of ${totalCount} gathered`}
 					</TextAnimate>
 				)}
@@ -150,15 +145,21 @@ export function RecipeIngredients({
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 				{Object.entries(grouped).map(([groupKey, items], groupIndex) => (
 					<div key={groupKey} className="space-y-4">
-					<TextAnimate
-						animation="blurIn"
-						as="h3"
-						className="text-base font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 pb-2 border-b border-border/50"
-						delay={0.1 + groupIndex * 0.05}
-						by="word"
-						once
-					>
-							{String(hasSections ? groupKey : categoryLabels[groupKey] || groupKey)}
+						<TextAnimate
+							animation="blurIn"
+							as="h3"
+							className={`font-semibold uppercase tracking-wider flex items-center gap-2 pb-2 border-b ${
+								hasSections
+									? "text-lg text-foreground border-border"
+									: "text-base text-muted-foreground border-border/50"
+							}`}
+							delay={0.1 + groupIndex * 0.05}
+							by="word"
+							once
+						>
+							{String(
+								hasSections ? groupKey : categoryLabels[groupKey] || groupKey
+							)}
 						</TextAnimate>
 						<div className="space-y-3">
 							{items.map((ingredient) => {
