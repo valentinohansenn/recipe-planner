@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import {
 	useChatMessages,
 	useChatSendMessage,
@@ -21,9 +20,7 @@ import {
 	type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input"
 import { ChatMessageCard } from "./chat-message-card"
-import { ThoughtProcessModule } from "./thought-process"
 import { useRecipeContext } from "@/contexts/recipe-context"
-import type { ThoughtStep } from "@/lib/types"
 
 export function LeftPanel() {
 	const messages = useChatMessages()
@@ -31,84 +28,23 @@ export function LeftPanel() {
 	const status = useChatStatus()
 	const { recipeVersions } = useRecipeContext()
 
-	const [thoughtSteps, setThoughtSteps] = useState<ThoughtStep[]>([])
-
 	const isLoading = status === "submitted" || status === "streaming"
-
-	// Simulate thought process when streaming starts
-	useEffect(() => {
-		if (status === "submitted" && thoughtSteps.length === 0) {
-			simulateThoughtProcess()
-		} else if (status === "ready" && thoughtSteps.length > 0) {
-			// Complete all steps when done
-			setThoughtSteps((prev) =>
-				prev.map((step) => ({ ...step, status: "completed" as const }))
-			)
-		}
-	}, [status, thoughtSteps.length])
-
-	const simulateThoughtProcess = () => {
-		const steps: ThoughtStep[] = [
-			{
-				id: "1",
-				title: "Understanding your request",
-				description: "Analyzing key requirements and preferences",
-				status: "active",
-			},
-			{
-				id: "2",
-				title: "Identifying constraints",
-				description: "Determining dietary restrictions, time, and skill level",
-				status: "pending",
-			},
-			{
-				id: "3",
-				title: "Searching recipe database",
-				description: "Finding suitable recipes that match your criteria",
-				status: "pending",
-			},
-			{
-				id: "4",
-				title: "Generating recipe details",
-				description: "Creating ingredient list and step-by-step instructions",
-				status: "pending",
-			},
-			{
-				id: "5",
-				title: "Adding helpful tips",
-				description: "Including chef's tips and nutrition information",
-				status: "pending",
-			},
-		]
-
-		setThoughtSteps(steps)
-
-		// Animate through steps
-		let currentStep = 0
-		const interval = setInterval(() => {
-			currentStep++
-			if (currentStep >= steps.length) {
-				clearInterval(interval)
-				return
-			}
-			setThoughtSteps((prev) =>
-				prev.map((step, index) => ({
-					...step,
-					status:
-						index < currentStep
-							? "completed"
-							: index === currentStep
-							? "active"
-							: "pending",
-				}))
-			)
-		}, 1200)
-	}
 
 	const handleSubmit = (message: PromptInputMessage) => {
 		if (!message.text?.trim()) return
 		sendMessage({ text: message.text })
 	}
+
+	// Extract all status messages from all messages for real-time display
+	const allStatusMessages = messages.flatMap((message) =>
+		message.parts
+			.filter((part) => part.type === "data-recipe-status")
+			.map((part) => {
+				const dataPart = part as any
+				return dataPart.data?.message
+			})
+			.filter(Boolean)
+	)
 
 	return (
 		<div className="flex flex-col h-full">
@@ -121,25 +57,46 @@ export function LeftPanel() {
 							.map((part) => part.text)
 							.join("")
 
-						return (
-							<div key={`${message.id}-${recipeVersions.length}`} className="space-y-4">
-								<ChatMessageCard
-									role={message.role}
-									content={content}
-									messageId={message.id}
-									isStreaming={
-										index === messages.length - 1 &&
-										message.role === "assistant" &&
-										isLoading
-									}
-								/>
+						// Extract status messages from this message
+						const statusMessages = message.parts
+							.filter((part) => part.type === "data-recipe-status")
+							.map((part) => {
+								const dataPart = part as any
+								return dataPart.data?.message
+							})
+							.filter(Boolean)
 
-								{/* Show Thought Process after first user message */}
-								{message.role === "user" &&
-									index === 0 &&
-									thoughtSteps.length > 0 && (
-										<ThoughtProcessModule steps={thoughtSteps} />
-									)}
+						// For the last streaming message, show all accumulated status messages
+						const displayStatusMessages =
+							index === messages.length - 1 && isLoading
+								? allStatusMessages
+								: statusMessages
+
+						// Show message if it has content OR if it's streaming with status messages
+						const shouldShow =
+							content.length > 0 ||
+							(index === messages.length - 1 &&
+								isLoading &&
+								displayStatusMessages.length > 0)
+
+						return (
+							<div
+								key={`${message.id}-${recipeVersions.length}`}
+								className="space-y-4"
+							>
+								{shouldShow && (
+									<ChatMessageCard
+										role={message.role}
+										content={content || ""}
+										messageId={message.id}
+										isStreaming={
+											index === messages.length - 1 &&
+											message.role === "assistant" &&
+											isLoading
+										}
+										statusMessages={displayStatusMessages}
+									/>
+								)}
 							</div>
 						)
 					})}

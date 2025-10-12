@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -24,12 +24,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useRecipeContext } from "@/contexts/recipe-context"
+import { ShimmeringText } from "@/components/animate-ui/primitives/texts/shimmering"
 
 interface ChatMessageCardProps {
 	role: "user" | "assistant" | "system"
 	content: string
 	isStreaming?: boolean
 	messageId?: string
+	statusMessages?: string[]
 }
 
 export function ChatMessageCard({
@@ -37,12 +39,21 @@ export function ChatMessageCard({
 	content,
 	isStreaming = false,
 	messageId,
+	statusMessages = [],
 }: ChatMessageCardProps) {
 	const [isOpen, setIsOpen] = useState(true)
+	const [currentStatusIndex, setCurrentStatusIndex] = useState(0)
 	const { recipeVersions, currentVersionId, handleLoadVersionRef } =
 		useRecipeContext()
 
 	const isUser = role === "user"
+
+	// Transition through status messages
+	useEffect(() => {
+		if (statusMessages.length === 0) return
+
+		setCurrentStatusIndex(statusMessages.length - 1)
+	}, [statusMessages])
 
 	// Find versions associated with this message
 	const messageVersions = messageId
@@ -91,15 +102,6 @@ export function ChatMessageCard({
 					<div className="flex items-center justify-between gap-2">
 						<ItemTitle className="text-foreground flex items-center gap-2">
 							Chef Shanice
-							{isStreaming && (
-								<Badge
-									variant="secondary"
-									className="gap-1 px-2 py-0.5 animate-pulse"
-								>
-									<SparklesIcon className="size-3" />
-									<span className="text-xs">Cooking up a response...</span>
-								</Badge>
-							)}
 						</ItemTitle>
 
 						<CollapsibleTrigger asChild>
@@ -120,11 +122,48 @@ export function ChatMessageCard({
 					</div>
 
 					<CollapsibleContent className="mt-3">
-						<div className="prose prose-sm dark:prose-invert max-w-none">
-							<p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
-								{content}
-							</p>
-						</div>
+						{/* Content - only show if not empty */}
+						{content && content.trim().length > 0 && (
+							<div className="prose prose-sm dark:prose-invert max-w-none">
+								<div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
+									{content.split("\n").map((line, i) => {
+										// Simple markdown parsing for bold text
+										const parts = line.split(/(\*\*[^*]+\*\*)/g)
+										return (
+											<p key={i} className={i > 0 ? "mt-2" : ""}>
+												{parts.map((part, j) => {
+													if (part.startsWith("**") && part.endsWith("**")) {
+														return <strong key={j}>{part.slice(2, -2)}</strong>
+													}
+													return <span key={j}>{part}</span>
+												})}
+											</p>
+										)
+									})}
+								</div>
+							</div>
+						)}
+
+						{/* Status Message - Single transitioning message */}
+						{statusMessages.length > 0 && (
+							<div
+								className={cn(
+									"flex items-center gap-2 text-sm text-muted-foreground",
+									content && content.trim().length > 0
+										? "mt-4 pt-3 border-t border-border/50"
+										: ""
+								)}
+							>
+								<SparklesIcon className="size-3 text-primary" />
+								<ShimmeringText
+									key={statusMessages[currentStatusIndex]}
+									text={statusMessages[currentStatusIndex]}
+									duration={1.5}
+									wave={false}
+									className="transition-all duration-300"
+								/>
+							</div>
+						)}
 
 						{/* Version History Buttons */}
 						{messageVersions.length > 0 && (
