@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { MessageSquareIcon, XIcon, ChevronDownIcon } from "lucide-react"
+import { MessageSquareIcon, ChevronDownIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LeftPanel } from "./left-panel"
 import { cn } from "@/lib/utils"

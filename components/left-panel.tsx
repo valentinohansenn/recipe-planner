@@ -40,7 +40,7 @@ export function LeftPanel() {
 		message.parts
 			.filter((part) => part.type === "data-recipe-status")
 			.map((part) => {
-				const dataPart = part as any
+				const dataPart = part as { type: string; data?: { message?: string } }
 				return dataPart.data?.message
 			})
 			.filter(Boolean)
@@ -61,16 +61,16 @@ export function LeftPanel() {
 						const statusMessages = message.parts
 							.filter((part) => part.type === "data-recipe-status")
 							.map((part) => {
-								const dataPart = part as any
+								const dataPart = part as { type: string; data?: { message?: string } }
 								return dataPart.data?.message
 							})
 							.filter(Boolean)
 
 						// For the last streaming message, show all accumulated status messages
-						const displayStatusMessages =
+						const displayStatusMessages: string[] =
 							index === messages.length - 1 && isLoading
-								? allStatusMessages
-								: statusMessages
+								? allStatusMessages.filter((msg): msg is string => typeof msg === 'string')
+								: statusMessages.filter((msg): msg is string => typeof msg === 'string')
 
 						// Show message if it has content OR if it's streaming with status messages
 						const shouldShow =

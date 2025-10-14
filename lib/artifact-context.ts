@@ -21,7 +21,7 @@ export function sendStatusMessage(message: string) {
                 data: { message }
             })
         }
-    } catch (error) {
+    } catch {
         // Silently fail if context not available
         console.log('[STATUS]:', message)
     }

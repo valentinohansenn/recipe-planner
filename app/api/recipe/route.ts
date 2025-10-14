@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         console.log('[AGENT_CALL]: Received request with', messages.length, 'messages')
 
         // Get the last user message
-        const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()
+        const lastUserMessage = messages.filter((m: { role: string }) => m.role === 'user').pop()
 
         // Extract text content (handle both string and array formats)
         let lastMessageContent = ''
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
                 lastMessageContent = lastUserMessage.content
             } else if (Array.isArray(lastUserMessage.content)) {
                 // Handle array of content parts (e.g., [{type: 'text', text: '...'}])
-                const textPart = lastUserMessage.content.find((part: any) => part.type === 'text')
+                const textPart = lastUserMessage.content.find((part: { type: string; text?: string }) => part.type === 'text')
                 lastMessageContent = textPart?.text || ''
             }
         }

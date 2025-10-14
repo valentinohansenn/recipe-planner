@@ -20,7 +20,6 @@ import {
 	SparklesIcon,
 	ClockIcon,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useRecipeContext } from "@/contexts/recipe-context"
@@ -37,7 +36,6 @@ interface ChatMessageCardProps {
 export function ChatMessageCard({
 	role,
 	content,
-	isStreaming = false,
 	messageId,
 	statusMessages = [],
 }: ChatMessageCardProps) {
